@@ -1,0 +1,76 @@
+body {
+    font-family: HelveticaNeue, Helvetica, sans-serif;
+    font-weight: 400;
+    text-rendering: optimizelegibility;
+    color: grey;
+    margin: 0px;
+    padding: 20px;
+}
+a {
+    color: #FF433A;
+    text-decoration: none;
+}
+hr {
+    border: 0px;
+    border-bottom: 2px solid #931713;
+}
+li {
+    margin-bottom: 20px;
+}
+
+header h1 {
+    font-family: HelveticaNeue-UltraLight, Helvetica-Light, HelveticaNeue, Helvetica, sans-serif;
+    font-weight: 100;
+    font-size: 100px;
+    border-bottom: 2px solid #931713;
+    margin: -20px -50px 20px -40px;
+    white-space: nowrap;
+    overflow: hidden;
+    -webkit-transform: rotate(-3deg);
+    -moz-transform: rotate(-3deg);
+    -webkit-transform-origin: left bottom;
+    -moz-transform-origin: left bottom;
+}
+h2 {
+    margin: 0px 0px 20px 0px;
+    font-weight: 100;
+    font-size: 40px;
+}
+footer {
+    text-align: center;
+    color: lightgray;
+}
+
+ul.block-l {
+    margin: 0px;
+}
+ul.block-l li {
+    display: inline-block;
+    vertical-align: top;  /* Needed with inline-block otherwise they're wherever vertically... */
+    position: relative;  /* Needed so child summary elements are positioned relative to this parent. */
+    width: 150px;
+    height: 150px;
+    border: 2px solid #931713;
+    padding: 10px;
+    margin: 0px 20px 20px 0px;
+    -webkit-transition: background 0.25s;
+    -moz-transition: background 0.25s;
+}
+ul.block-l li:hover {
+    background: #eeeeee;
+}
+@media (max-width: 468px) {
+    ul.block-l li {
+        float: none;
+        width: inherit;
+        margin-bottom: 40px;
+    }
+}
+ul.block-l summary {
+    color: grey;
+    position: absolute;
+    text-align: right;
+    bottom: 0px;
+    right: 0px;
+    padding: 10px;
+}

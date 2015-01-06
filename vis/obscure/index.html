@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<title>musical obscurity explorer</title>
+<style type="text/css">
+body {
+	color: lightgray;
+	font-family: sans-serif;
+}
+
+a {
+	color: #f69999;
+	text-decoration: none;
+}
+
+.error {
+	color: #f69999;
+}
+
+div.input {
+	margin: 0.5em;
+	margin-left: 0em;
+}
+</style>
+
+<script type="text/javascript" src="lastfm.api.md5.js"></script>
+<script type="text/javascript" src="lastfm.api.js"></script>
+<script type="text/javascript" src="lastfm.api.cache.js"></script>
+
+<script type="text/javascript">
+
+var lastCache = new LastFMCache()
+var lastFM = new LastFM({
+	apiKey:'20c7beabed147c31babbe16a16ca715b',
+	apiSecret:'772ee9e0b86f1eb73674dc2a9bca411c',
+	cache:lastCache})
+	
+</script>
+
+<script type="text/javascript" src="protovis.min.js"></script>
+
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-35022696-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+</head>
+<body>
+musical obscurity explorer by <a href="http://selassid.net/">david selassie</a> using <a href="http://vis.stanford.edu/protovis/">protovis</a>, <a href="http://www.last.fm/api">last.fm api</a>, <a href="http://lastfm.felixbruns.de/javascript-last.fm-api/">javascript-last.fm-api</a>
+<div class="input"><input id="lastName" type="text" spellcheck="false" placeholder="last.fm username" onkeypress="if((event.keyCode || event.which) == 13 && this.value) { run() }" value="selassid" /><input type="button" value="visualize" onclick="if (document.getElementById('lastName').value) { run() }"/></div>
+<div id="status"><br /></div>
+<div id="center"><div id="fig">
+<script type="text/javascript">
+
+var lastUser = "selassid"
+
+var topArtistsArray = []
+var selectedArtistPlayHistoryArray = []
+var selectedArtistPlayHistoryBins = []
+
+// RETURN IS REQUIRED IN LONG FORM. ARRG.
+var playCountFM = function(d) { return d.stats.playcount }
+var playCountUser = function(d) { return d.playcount }
+
+var labelFont = "12pt Helvetica"
+var days = 365
+var histogramResolution = 52
+
+var w = 800
+var hPlot = 300
+var margin = 40
+var hHistogram = 100
+
+var scalePlayCountFM = pv.Scale.linear().range(0, hPlot)
+var scalePlayCountUser = pv.Scale.linear().range(0, w)
+var scaleColor = pv.Scale.linear().range("lightgray", "lightgray")
+
+var container = new pv.Panel()
+	.width(w + 2*margin + 150)
+	.height(hPlot + 3*margin + hHistogram)
+	//.lineWidth(5).strokeStyle("#F00")
+
+var plot = container.add(pv.Panel)
+	.def("loadData", function() {
+		scalePlayCountFM.domain(pv.min(topArtistsArray, playCountFM), pv.max(topArtistsArray, playCountFM))
+		scalePlayCountUser.domain(pv.min(topArtistsArray, playCountUser), pv.max(topArtistsArray, playCountUser))
+		scaleColor.domain(pv.min(topArtistsArray, playCountFM), pv.max(topArtistsArray, playCountFM))
+		
+		return topArtistsArray
+	})
+	.top(margin)
+	.left(margin + 10)
+	.height(hPlot)
+	.width(w)
+	.events("all")
+	.event("mousemove", pv.Behavior.point())
+	//.lineWidth(5).strokeStyle("#0F0")
+
+plot.add(pv.Rule)
+	.data(function() { plot.loadData(); return scalePlayCountUser.ticks() })
+	.strokeStyle("#eee")
+	.left(scalePlayCountUser)
+	//.anchor("bottom").add(pv.Label).text(scalePlayCountUser.tickFormat)
+plot.add(pv.Label)
+	.data(["more plays by all of last.fm"])
+	.left(-25)
+	.top(0)
+	.textAlign("right")
+	.textAngle(-Math.PI/2)
+	.font(labelFont)
+	.textStyle("lightgray")
+	
+plot.add(pv.Rule)
+	.data(function() { plot.loadData(); return scalePlayCountFM.ticks() })
+	.strokeStyle("#eee")
+	.bottom(scalePlayCountFM)
+	//.anchor("left").add(pv.Label).text(scalePlayCountFM.tickFormat)
+plot.add(pv.Label)
+	.data(function() { return ["more plays by " + lastUser.toLowerCase()] })
+	.right(0)
+	.bottom(-25)
+	.textAlign("right")
+	.font(labelFont)
+	.textStyle("lightgray")
+
+var dot = plot.add(pv.Dot)
+	.def("pointed", -1)
+	.def("selected", -1)
+	.data(function() { return plot.loadData() })
+	.size(75)
+	.lineWidth(2)
+	.strokeStyle(function(d) { if(this.pointed() == this.index && this.selected() == this.index) { return "#E74C4D" } else if(this.pointed() == this.index) { return "black" } else if(this.selected() == this.index) { return "#f69999" } else { return scaleColor(playCountFM(d)) } })
+	.fillStyle(function() { return this.strokeStyle().alpha(.5) })
+	.left(function(d) { return scalePlayCountUser(playCountUser(d)) })
+	.bottom(function(d) { return scalePlayCountFM(playCountFM(d)) })
+	.event("click", function(d) { this.selected(this.index).parent; plot.render(); getArtistHistory(d.name); })
+	.event("point", function() { return this.pointed(this.index).parent })
+	.event("unpoint", function() { return this.pointed(-1).parent })
+	dot.anchor("right").add(pv.Label)
+		.visible(function() { return (this.anchorTarget().pointed() == this.index || this.anchorTarget().selected() == this.index) })
+		.text(function(d) { return d.name.toLowerCase() })
+		.textStyle(function() { if(this.anchorTarget().pointed() == this.index) { return "black" } else { return "gray" } })
+		.font(labelFont)
+	dot.anchor("bottom").add(pv.Label)
+		.visible(function() { return this.anchorTarget().selected() == this.index })
+		.text(function(d) { return playCountUser(d) + " plays" })
+		.textStyle(function() { if(this.anchorTarget().pointed() == this.index) { return "black" } else { return "gray" } })
+		.textAlign("left")
+		.left(function(d) { return scalePlayCountUser(playCountUser(d)) - 10 })
+		.font(labelFont)
+	dot.anchor("left").add(pv.Label)
+		.visible(function() { return this.anchorTarget().selected() == this.index })
+		.text(function(d) { return playCountFM(d) + " plays" })
+		.textStyle(function() { if(this.anchorTarget().pointed() == this.index) { return "black" } else { return "gray" } })
+		.textAngle(-Math.PI/2)
+		.textAlign(function(d) { if(scalePlayCountFM(playCountFM(d)) - hPlot/2 < 0) { return "left" } else { return "right" } } )
+		.left(function(d) { return scalePlayCountUser(playCountUser(d)) - 20 })
+		// Couldn't get bottom to adjust...
+		//.bottom(function(d) { return scalePlayCountFM(playCountFM(d)) + 100 })
+		.font(labelFont)
+
+var now = parseInt((new Date()).getTime() / 1000)
+var yearAgo = now - 60 * 60 * 24 * days
+var scaleDate = pv.Scale.linear().range(0, w)		
+var scaleHistogramCount = pv.Scale.linear().range(0, hHistogram)
+
+var histogram = container.add(pv.Panel)
+	.visible(function() { return dot.selected() > 0 })
+	.def("timeScale", function() {
+		now = parseInt((new Date()).getTime() / 1000)
+		yearAgo = now - 60 * 60 * 24 * days
+		scaleDate.domain(yearAgo, now)
+	})
+	.def("loadData", function() {
+		this.timeScale()
+		scaleHistogramCount.domain(0, pv.max(selectedArtistPlayHistoryBins, function(d) { return d.y }))
+		
+		return selectedArtistPlayHistoryBins
+	})
+	.top(hPlot + 2*margin)
+	.left(margin)
+	.height(hHistogram)
+	.width(w)
+	//.margin(margin)
+	.events("all")
+	.event("mousemove", pv.Behavior.point())
+	//.lineWidth(5).strokeStyle("#00F")
+	
+histogram.add(pv.Rule)
+	.data(function() { histogram.loadData(); return scaleDate.ticks(12) })
+	.strokeStyle("#eee")
+	.left(scaleDate)
+//	.anchor("bottom").add(pv.Label)
+//		.text(function(d) { date = new Date(); date.setTime(d * 1000); return (date.getMonth() + 1) + "/" + date.getDate() + "/" + date.getFullYear() })
+//		.font(labelFont)
+histogram.add(pv.Label)
+	.data(["now"])
+	.right(0)
+	.bottom(5)
+	.textAlign("right")
+	.font(labelFont)
+	.textStyle("lightgray")
+histogram.add(pv.Label)
+	.data(["one year ago"])
+	.left(0)
+	.bottom(5)
+	.textAlign("left")
+	.font(labelFont)
+	.textStyle("lightgray")
+	
+function dateDate(d)
+{
+	date = new Date()
+	date.setTime(d * 1000)
+	return (date.getMonth() + 1) + "/" + date.getDate() + "/" + date.getFullYear()
+}
+	
+bar = histogram.add(pv.Bar)
+	.def("pointed", -1)
+	.data(function() { return histogram.loadData() })
+    .left(function(d) { return scaleDate(d.x) })
+    // Couldn't get scaleDate(d.dx) to work... arg.
+    .width(w / histogramResolution)
+    .height(function(d) { return scaleHistogramCount(d.y) })
+   	.bottom(0)
+	.strokeStyle(function(d) { if(this.pointed() == this.index) { return "#E74C4D" } else { return "#f69999" } })
+	.lineWidth(2)
+	.fillStyle(function() { return this.strokeStyle().alpha(.5) })
+	.event("point", function() { return this.pointed(this.index).parent })
+	.event("unpoint", function() { return this.pointed(-1).parent })
+	bar.anchor("bottom").add(pv.Label)
+		.textBaseline("top")
+		.visible(function() { return this.anchorTarget().pointed() == this.index })
+		.text(function(d) { return dateDate(d.x) })
+		.font(labelFont)
+	bar.anchor("top").add(pv.Label)
+		.textBaseline("bottom")
+		.visible(function() { return this.anchorTarget().pointed() == this.index })
+		.text(function(d) { return d.y + " plays" })
+		.font(labelFont)
+
+// Requires loadData to return the array not the bins:	
+/*histogram.add(pv.Dot)
+	.data(function() { return histogram.loadData() })
+	.left(function(d) { return scaleDate(d.date.uts) })
+	.top(50)
+	.size(200)
+	.strokeStyle("#f69999")
+	.fillStyle(function() { return this.strokeStyle().alpha(.2) })
+*/
+//container.render()
+
+// Begin!
+function run()
+{
+	dot.def("selected", -1)
+	document.getElementById("status").setAttribute("class", null)
+	lastUser = document.getElementById("lastName").value
+	getTopArtists()
+}
+
+function getTopArtists(fromTimestamp)
+{
+	document.getElementById("status").innerHTML = "loading top artists for " + lastUser.toLowerCase() + "..."
+	lastFM.user.getTopArtists({"user": lastUser},
+	{
+		"success": function(data) {
+			topArtistsArray = data.topartists.artist
+			
+			for(index in topArtistsArray)
+			{
+				topArtistsArray[index].playcount = parseInt(topArtistsArray[index].playcount)
+				topArtistsArray[index].pending = true
+			}
+			
+			getArtistData()
+		},
+		"error": function(code, message) {
+			document.getElementById("status").setAttribute("class", "error")
+			document.getElementById("status").innerHTML = "no user named " + lastUser + "."
+		}
+	})
+}
+
+var out = 0, back = 0
+function getArtistData()
+{
+	out = 0
+	back = 0
+	
+	for(index in topArtistsArray)
+	{
+		artist = topArtistsArray[index]
+		
+		out += 1
+		lastFM.artist.getInfo({"artist": artist.name, "autocorrect": "false"},
+		{
+			"success": function(data) {
+				back += 1
+				
+				// Because anonymous function scope is decided when called, we have to search for the corresponding element in topArtistsArray.
+				// Also pv.search messes up here but my linear search works...
+				//index = pv.search(topArtistsArray, data.artist.name, function(d) { return d.name })
+				index = -1
+				for(jndex in topArtistsArray)
+					if(topArtistsArray[jndex].name == data.artist.name)
+						index = jndex
+				
+				if(index > -1)
+				{
+					for(key in data.artist)
+						topArtistsArray[index][key] = data.artist[key]
+					topArtistsArray[index].pending = false;
+					topArtistsArray[index].stats.playcount = parseInt(topArtistsArray[index].stats.playcount)
+				}
+					
+				checkArtistQueryPending()
+			},
+			"error": function(code, message) { alert(code + message); back += 1 }
+		})
+		
+		//if(out > 3) break
+	}
+}
+
+function checkArtistQueryPending()
+{
+	if(back < out)
+		document.getElementById("status").innerHTML = "loading stats for " + back + " / " + out + " artists..."
+	else
+	{	
+		document.getElementById("status").innerHTML = "top 50 artists of <a href=\"http://www.last.fm/user/" + lastUser + "\" target=\"_blank\">" + lastUser.toLowerCase() + "</a>"
+		plot.render()
+	}
+}
+
+var historyOut = 0, historyBack = 0, totalHistoryPages = 0
+var artistHistoryPagesArray = []
+function getArtistHistory(artistName)
+{
+	historyOut = historyBack = totalHistoryPages = 0
+	artistHistoryPagesArray = []
+	selectedArtistPlayHistoryArray = []
+	selectedArtistPlayHistoryBins = []
+	histogram.render() // Clear the histogram.
+	getArtistHistoryPage(artistName, 1)
+}
+
+function getArtistHistoryPage(artistName, page)
+{
+	document.getElementById("status").innerHTML = "loading play history of " + artistName.toLowerCase() + "..."
+	
+	historyOut += 1
+	lastFM.user.getArtistTracks({"user": lastUser, "artist": artistName, "startTimestamp": yearAgo, "page": page},
+	{
+		"success": function(data) {
+			historyBack += 1
+			
+			if(data.artisttracks["@attr"] != undefined)
+			{
+				page = parseInt(data.artisttracks["@attr"].page)
+				
+				// Check to make sure we're getting back the selected artist's data. If you click on multiple dots quickly, this is an issue.
+				if(!(page > 1 && (artistHistoryPagesArray.length == 0 || data.artisttracks["@attr"].artist != artistHistoryPagesArray[page - 1]["@attr"].artist)))
+				{				
+					artistHistoryPagesArray[page] = data.artisttracks
+					
+					totalHistoryPages = parseInt(data.artisttracks["@attr"].totalPages)
+					if(page < totalHistoryPages)
+						getArtistHistoryPage(artistName, page + 1)
+				}
+			}
+
+			checkHistoryQueryPending()
+		},
+		"error": function(code, message) { alert(code + message) }
+	})
+}
+
+function checkHistoryQueryPending()
+{
+	if(historyBack < historyOut)
+		document.getElementById("status").innerHTML = "loading play history page " + historyBack + "/" + totalHistoryPages + "..."
+	else
+	{
+		// Put in one data point so the histogram bins will always be generated.
+		selectedArtistPlayHistoryArray = [{"date": {"uts": 0}}]
+		for(index in artistHistoryPagesArray)
+		{
+			currentPagePlayHistoryArray = artistHistoryPagesArray[index].track
+			if(currentPagePlayHistoryArray)
+			{
+				// If only one result is returned, then it's not in an array.
+				if(!(currentPagePlayHistoryArray instanceof Array))
+					currentPagePlayHistoryArray = [currentPagePlayHistoryArray]
+				for(index in currentPagePlayHistoryArray)
+					currentPagePlayHistoryArray[index].date.uts = parseInt(currentPagePlayHistoryArray[index].date.uts)
+			}
+			else
+				currentPagePlayHistoryArray = []
+				
+			selectedArtistPlayHistoryArray = selectedArtistPlayHistoryArray.concat(currentPagePlayHistoryArray)
+		}
+		
+		histogram.timeScale()
+		// Slice off the earliest bin since all scrobbles before that date (could be a ton, will be included in that bin)
+		selectedArtistPlayHistoryBins = pv.histogram(selectedArtistPlayHistoryArray, function(d) { return d.date.uts }).bins(scaleDate.ticks(histogramResolution))
+		selectedArtistPlayHistoryBins = selectedArtistPlayHistoryBins.slice(1)
+		
+		document.getElementById("status").innerHTML = "top 50 artists of <a href=\"http://www.last.fm/user/" + lastUser + "\" target=\"_blank\">" + lastUser.toLowerCase() + "</a>"
+		histogram.render()
+	}
+}
+
+</script>
+</div></div>
+</body>
+</html>

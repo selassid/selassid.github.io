@@ -1,0 +1,166 @@
+<html>
+<head>
+<title>equations</title>
+<meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0" />
+<script src="d3.min.js" type="text/javascript"></script>
+<style type="text/css">
+html {
+overflow: hidden;
+}
+body {
+font-family: HelveticaNeue, Helvetica, sans-serif;
+font-size: 100px;
+margin: 0px;
+}
+svg {
+width: 100%;
+height: 100%;
+}
+#eq > text {
+-webkit-touch-callout: none;
+-webkit-user-select: none;
+user-select: none;
+cursor: default;
+}
+</style>
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-35022696-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="vis">
+<text x="10" y="20" style="font-size: 14px; fill: lightgray;">drag and pinch or scroll on the letters</text>
+<g id="eq"></g>
+</svg>
+<script type="text/javascript">
+function makeequation(eqtext) {
+    var eqdata = []
+    
+    var side = 0
+    for (var i = 0; i < eqtext.length; i++) {
+        var letter = eqtext[i]
+        var varobj = {}
+        
+        varobj.fixed = false
+        varobj.side = side
+        varobj.symbol = letter
+        varobj.value = 1
+        
+        if (letter == "=") {
+            side++
+            varobj.fixed = true
+        }
+        
+        eqdata.push(varobj)
+    }
+    
+    return eqdata
+}
+
+function changeval(equation, id, newval) {
+    newval = newval > 100 ? 100 : newval
+    newval = newval < 0.5 ? 0.5 : newval
+
+    var oldval = equation[id].value
+    equation[id].value = newval
+    var mv = newval / oldval
+    
+    // Find out how many variables are on the other side that need to react.
+    var othersidecount = 0
+    for (var jd in equation) {
+        if (equation[jd].side !=  equation[id].side && !equation[jd].fixed) {
+            othersidecount++
+        }
+    }
+
+    for (var jd in equation) {
+        if (equation[jd].side == equation[id].side || equation[jd].fixed) continue
+        
+        equation[jd].value *= Math.pow(mv, 1.0 / othersidecount)
+    }
+
+    update()
+}
+
+var vis = d3.select("#vis")
+var eqg = d3.select("#eq")
+var eqdata = makeequation("PV=nRT")
+eqdata[4].fixed = true
+
+var origin = {"x": 50, "y": 150}, oldorigin = {}, down = null
+eventdown = function() {
+        down = {"x": d3.event.pageX, "y": d3.event.pageY}
+        oldorigin.x = origin.x
+        oldorigin.y = origin.y
+    }
+eventmove = function() {
+        d3.event.preventDefault()
+        if (down) {
+            origin.x = oldorigin.x + d3.event.pageX - down.x
+            origin.y = oldorigin.y + d3.event.pageY - down.y
+            
+            update()
+        }
+    }
+eventup = function() {
+        down = null
+    }
+vis.on("mousedown", eventdown)
+    .on("mousemove", eventmove)
+    .on("mouseup", eventup)
+    .on("touchstart", eventdown)
+    .on("touchmove", eventmove)
+    .on("touchend", eventup)
+
+var letters = eqg.selectAll("text")
+    .data(eqdata)
+    .enter().append("text")
+    .style("font-size", function(d) { return d.value * 100 })
+    //.style("text-anchor", "middle")
+    .text(function(d) { return d.symbol })
+    .on("mousewheel", function(d, i) {
+        if(!d.fixed) {
+            changeval(eqdata, i, d.value + d3.event.wheelDeltaY / 4000)
+        }
+    })
+    .on("gesturestart", function(d) {
+        d.oldvalue = d.value
+    })
+    .on("gesturechange", function(d, i) {
+        if(!d.fixed) {
+            changeval(eqdata, i, d.oldvalue * d3.event.scale)
+        }
+    })
+
+function update() {
+    var trainlength = 0
+    var equalsx = 0
+    for (var i in eqdata) {
+        var eqvar = eqdata[i]
+        
+        if (eqvar.symbol == "=") {
+            equalsx = trainlength
+        }
+        eqvar.x = trainlength
+        eqvar.y = 0
+        
+        trainlength += 75 * eqvar.value
+    }
+
+    letters.style("font-size", function(d) { return d.value * 100 })
+        .attr("x", function(d) { return d.x + origin.x })
+        .attr("y", function(d) { return d.y + origin.y + d.value * 50 })
+}
+
+update()
+</script>
+</body>
+</html>

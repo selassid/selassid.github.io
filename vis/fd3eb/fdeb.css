@@ -1,0 +1,17 @@
+body {
+  font-family: sans-serif;
+}
+
+a {
+  text-decoration: none;
+}
+
+.node {
+  font: 10px sans-serif;
+}
+
+.link {
+  stroke: steelblue;
+  stroke-opacity: .4;
+  fill: none;
+}

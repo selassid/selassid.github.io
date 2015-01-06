@@ -1,0 +1,14 @@
+{% if post.external_href %}
+<a href="{{ post.external_href }}">
+{% elsif post.internal_href %}
+<a href="{{ site.baseurl }}{{ post.internal_href }}">
+{% else %}
+<a href="{{ site.baseurl }}{{ post.url }}">
+{% endif %}
+  <li>
+    {{ post.title }}
+    {% if post.description %}
+    <summary>{{ post.description }}</summary>
+    {% endif %}
+  </li>
+</a>

@@ -1,0 +1,52 @@
+---
+---
+<html>
+<head>
+  <title>david selassie</title>
+  <link rel="stylesheet" type="text/css" href="{{ site.baseurl }}/site.css" />
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, maximum-scale=1.0" />
+</head>
+<body>
+  {% include header.html %}
+
+  <main>
+    <nav>
+      <h2>games</h2>
+      <ul class="block-l">
+        {% for post in site.categories.games %}
+        {% include block.html %}
+        {% endfor %}
+      </ul>
+    </nav>
+
+    <nav>
+      <h2>code</h2>
+      <ul class="block-l">
+        {% for post in site.categories.code %}
+        {% include block.html %}
+        {% endfor %}
+      </ul>
+    </nav>
+
+    <nav>
+      <h2>vis</h2>
+      <ul class="block-l">
+        {% for post in site.categories.vis %}
+        {% include block.html %}
+        {% endfor %}
+      </ul>
+    </nav>
+
+    <nav>
+      <h2>other</h2>
+      <ul class="block-l">
+        {% for post in site.categories.other %}
+        {% include block.html %}
+        {% endfor %}
+      </ul>
+    </nav>
+  </main>
+
+  {% include footer.html %}
+</body>
+</html>

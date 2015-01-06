@@ -1,0 +1,231 @@
+<html>
+<head>
+<title>bikerace</title>
+<script type="text/javascript" src="d3.min.js"></script>
+<script type="text/javascript" src="gl-matrix-min.js"></script>
+<script type="text/javascript" src="GLU.js"></script>
+<script type="text/javascript" src="ds-webgl-utils.js"></script>
+<script type="text/javascript" src="webgl-utils.js"></script>
+<style type="text/css">
+body {
+background-color: black;
+margin: 0px;
+color: white;
+font-family: "Helvetica Neue", "DejaVu Sans", sans-serif;
+}
+a {
+text-decoration: none;
+color: gray;
+}
+ul {
+list-style-type: none;
+}
+div {
+padding: 10px;
+}
+green {
+color: #0F0;
+}
+purple {
+color: #F0F;
+}
+canvas {
+margin: 0px 30px 0px 0px;
+}
+</style>
+<script id="fs" type="x-shader/x-fragment">
+precision mediump float;
+
+uniform vec4 color;
+
+void main() {
+    gl_FragColor = color;
+}
+</script>
+<script id="vs" type="x-shader/x-vertex">
+attribute vec2 vertexPosition;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+
+void main() {
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(vertexPosition, 1, 1);
+}
+</script>
+<script type="text/javascript">
+var canvas
+var gl
+var outlineBuffer
+var streetsBuffer
+var circleBuffer
+var gtfs
+
+var centerProjCoords = [-214000, -25000, 0]
+var projWidth = 15000 / 2
+
+var bikeCircles = []
+var walkCircles = []
+
+function initGL() {
+    canvas = document.getElementById("map")
+    gl = glForCanvas(canvas)
+    var sp = glMakeProgram(gl, "fs", "vs")
+
+    gl.clearColor(0, 0, 0, 1)
+    gl.enable(gl.DEPTH_TEST)
+    gl.depthFunc(gl.LEQUAL)
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE)
+    gl.lineWidth(1)
+
+    circleCoords = [0, 0]
+    for (var t = 0; t <= 2 * Math.PI + 0.1; t += 0.1) {
+        circleCoords.push(Math.cos(t), Math.sin(t))
+    }
+    circleBuffer = glMakeBuffer(gl, circleCoords, 2, gl.TRIANGLE_FAN)
+
+    /*d3.json("muni-google_transit/gtfs.json", function(json) {
+        gtfs = json
+        drawScene()
+    })*/
+    d3.json("bayarea-shore.lightjson", function(json) {
+        outlineBuffer = glBufferFromLightGeo(gl, json)
+        drawScene()
+    })
+    d3.json("sanfran-streets.lightjson", function(json) {
+        streetsBuffer = glBufferFromLightGeo(gl, json)
+        drawScene()
+    })
+
+    canvas.onmousedown = onClick
+
+    resizeGL()
+}
+
+function resizeGL() {
+    size = Math.min(window.innerWidth, window.innerHeight)
+    canvas.width = canvas.height = size
+    gl.viewportWidth = gl.viewportHeight = size
+    drawScene()
+}
+
+function onClick(event) {
+    unPoint = [0, 0, 0, 0]
+    GLU.unProject(event.clientX, gl.viewportHeight - event.clientY, 1, gl.modelViewMatrix, gl.projectionMatrix, [0, 0, gl.viewportWidth, gl.viewportHeight], unPoint)
+    unPoint[2] = 0
+    bikeCircles.push(unPoint)
+    // A copy of this array needs to be made.
+    walkCircles.push(unPoint.slice(0))
+
+    console.log(unPoint)
+    tick()
+}
+
+function tick() {
+    done = true
+    for (var circleIndex in bikeCircles) {
+        circle = bikeCircles[circleIndex]
+        circle[3] += 2.5
+
+        if (circle[3] < 10000) {
+            done = false
+        }
+    }
+    for (var circleIndex in walkCircles) {
+        circle = walkCircles[circleIndex]
+        circle[3] += 0.75
+
+        if (circle[3] < 10000) {
+            done = false
+        }
+    }
+
+    if (!done) {
+        requestAnimFrame(tick)
+        drawScene()
+    }
+}
+
+function drawScene() {
+    gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight)
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+    //mat4.ortho(-122.526, -122.354, 37.645, 37.817, -1, 1, gl.projectionMatrix)
+    mat4.ortho(centerProjCoords[0] - projWidth, centerProjCoords[0] + projWidth, centerProjCoords[1] - projWidth, centerProjCoords[1] + projWidth, -1, 1, gl.projectionMatrix)
+
+    /*if (gtfs) {
+        gl.color = [.1, .1, .1, 1]
+        for (var stopIndex in gtfs.stops) {
+            stop = gtfs.stops[stopIndex]
+            mat4.identity(gl.modelViewMatrix)
+            mat4.translate(gl.modelViewMatrix, stop.coord);
+            mat4.scale(gl.modelViewMatrix, [50, 50, 1]);
+            glDraw(gl, circleBuffer)
+        }
+    }*/
+
+    gl.color = [0, 1, 0, 1]
+    for (var circleIndex in bikeCircles) {
+        circle = bikeCircles[circleIndex]
+        mat4.identity(gl.modelViewMatrix)
+        mat4.translate(gl.modelViewMatrix, circle.slice(0, 3));
+        mat4.scale(gl.modelViewMatrix, [circle[3], circle[3], 1]);
+        glDraw(gl, circleBuffer)
+    }
+    gl.color = [1, 0, 1, 1]
+    for (var circleIndex in walkCircles) {
+        circle = walkCircles[circleIndex]
+        mat4.identity(gl.modelViewMatrix)
+        mat4.translate(gl.modelViewMatrix, circle.slice(0, 3));
+        mat4.scale(gl.modelViewMatrix, [circle[3], circle[3], 1]);
+        gl.disable(gl.BLEND)
+        glDraw(gl, circleBuffer)
+        gl.enable(gl.BLEND)
+    }
+
+    if (streetsBuffer) {
+        gl.color = [0, 0, 0, 1]
+        mat4.identity(gl.modelViewMatrix)
+        gl.disable(gl.BLEND)
+        gl.disable(gl.DEPTH_TEST)
+        glDraw(gl, streetsBuffer)
+        gl.enable(gl.DEPTH_TEST)
+        gl.enable(gl.BLEND)
+    }
+    if (outlineBuffer) {
+        gl.color = [1, 1, 1, 1]
+        mat4.identity(gl.modelViewMatrix)
+        mat4.translate(gl.modelViewMatrix, [0, 0, -1]);
+        gl.disable(gl.BLEND)
+        glDraw(gl, outlineBuffer)
+        gl.enable(gl.BLEND)
+    }
+}
+</script>
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-35022696-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+</head>
+<body onload="initGL()" onresize="resizeGL()">
+<canvas id="map" style="float: left">
+</canvas>
+<div>
+<p>bikerace by <a href="http://selassid.net/">david selassie</a> using <a href="http://mbostock.github.com/d3/">d3</a>, <a href="https://github.com/toji/gl-matrix">glMatrix</a>, <a href="http://code.google.com/p/webglsamples/source/browse/book/webgl-utils.js?spec=svn41401f8a69b1f8d32c6863ac8c1953c8e1e8eba0&r=41401f8a69b1f8d32c6863ac8c1953c8e1e8eba0">webgl-utils</a>, <a href="https://github.com/fintler/webgl-unproject">webgl-unproject</a>, data from <a href="http://gispub02.sfgov.org/website/sfshare/index2.asp">sfgov</a><!--, <a href="http://www.sfmta.com/cms/asystem/transitdata.php">muni</a>-->
+</p>
+<p>click on the map to show the relative areas you can explore in each mode
+</p>
+<ul>
+legend:
+<li><green>bicycle</green></li>
+<li><purple>walking</purple></li>
+</ul>
+</div>
+</body>
+</html>
