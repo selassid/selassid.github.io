@@ -40,6 +40,15 @@ footer {
     text-align: center;
     color: lightgray;
 }
+footer li {
+    display: inline-block;
+}
+footer li:before {
+    content: "| ";
+}
+footer li:first-child:before {
+    content: "";
+}
 
 ul.block-l {
     margin: 0px;
