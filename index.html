@@ -12,36 +12,36 @@
   {% include header.html %}
 
   <main>
-    <nav>
+    <nav class="block">
       <h2>games</h2>
-      <ul class="block-l">
+      <ul>
         {% for post in site.categories.games %}
         {% include block.html %}
         {% endfor %}
       </ul>
     </nav>
 
-    <nav>
+    <nav class="block">
       <h2>code</h2>
-      <ul class="block-l">
+      <ul>
         {% for post in site.categories.code %}
         {% include block.html %}
         {% endfor %}
       </ul>
     </nav>
 
-    <nav>
+    <nav class="block">
       <h2>vis</h2>
-      <ul class="block-l">
+      <ul>
         {% for post in site.categories.vis %}
         {% include block.html %}
         {% endfor %}
       </ul>
     </nav>
 
-    <nav>
+    <nav class="block">
       <h2>other</h2>
-      <ul class="block-l">
+      <ul>
         {% for post in site.categories.other %}
         {% include block.html %}
         {% endfor %}
