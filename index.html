@@ -12,7 +12,7 @@
   {% include header.html %}
 
   <main>
-    <nav class="block">
+    <nav id="games" class="block">
       <h1>games</h1>
       <ul>
         {% for post in site.categories.games %}
@@ -21,7 +21,7 @@
       </ul>
     </nav>
 
-    <nav class="block">
+    <nav id="code" class="block">
       <h1>code</h1>
       <ul>
         {% for post in site.categories.code %}
@@ -30,7 +30,7 @@
       </ul>
     </nav>
 
-    <nav class="block">
+    <nav id="vis" class="block">
       <h1>vis</h1>
       <ul>
         {% for post in site.categories.vis %}
@@ -39,7 +39,7 @@
       </ul>
     </nav>
 
-    <nav class="block">
+    <nav id="other" class="block">
       <h1>other</h1>
       <ul>
         {% for post in site.categories.other %}
