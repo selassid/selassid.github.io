@@ -1,5 +1,7 @@
 ---
 title: chemistry
+permalink: chemistry.html
+description: ""
 category: other
 ---
 previously worked in the [markland group](http://www.stanford.edu/group/markland/) at stanford, the [kahr group](http://www.nyu.edu/fas/dept/chemistry/kahrgroup/) at university of washington, and the [kohen group](http://www.people.carleton.edu/~dkohen/) at carleton college.

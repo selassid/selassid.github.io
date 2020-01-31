@@ -1,0 +1,14 @@
+---
+title: house renovation
+description: rooms in the attic!
+category: other
+permalink: /house/
+---
+<nav id="house" class="block">
+  <p>pictures of my progress. hopefully updated daily.</p>
+  <ul>
+    {% for post in site.categories.house %}
+    {% include block.html %}
+    {% endfor %}
+  </ul>
+</nav>

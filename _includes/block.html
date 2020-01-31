@@ -9,6 +9,8 @@
     {{ post.title }}
     {% if post.description %}
     <summary>{{ post.description }}</summary>
+    {% else %}
+    <summary>{{ post.date | date_to_string: "ordinal", "US" | downcase }}</summary>
     {% endif %}
   </li>
 </a>

@@ -1,7 +1,6 @@
 ---
 github:
   repository_url: https://github.com/davidselassie/site
-permalink: :title.html
 defaults:
   -
     scope:
