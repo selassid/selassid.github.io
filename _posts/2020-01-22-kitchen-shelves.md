@@ -6,9 +6,9 @@ category: house
 took the old flooring from the attic and cut it into sections for kitchen shelves.
 got some 1/8" flat iron bar and bent it in the anvil and hammer then drilled screw holes to make shelf holders.
 
-![new post in an exterior wall of my bedroom](/house/IMG_0815.jpg)
+![bent and drilled flat iron shelf holder](/house/IMG_0815.jpg)
 
 looks pretty good!
 1/8" is kinda bendy, though; next time i'll try 1/4".
 
-![removed lathe and plaster on bathroom wall](/house/IMG_0816.jpg)
+![shelves in the kitchen with mason jars](/house/IMG_0816.jpg)
